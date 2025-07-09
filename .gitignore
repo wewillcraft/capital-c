@@ -88,3 +88,7 @@ $RECYCLE.BIN/
 _fresh/
 # npm dependencies
 node_modules/
+
+# Ignore SurrealDB persistent data
+mydata/*
+!mydata/.gitkeep

@@ -1,0 +1,9 @@
+services:
+  surrealdb:
+    image: surrealdb/surrealdb:v2.1.8
+    pull_policy: always
+    command: start --log $SURREALDB_LOG --user $SURREALDB_USER --pass $SURREALDB_PASS rocksdb:/mydata/mydatabase.db
+    ports:
+      - "${SURREALDB_PORT}:8000"
+    volumes:
+      - ./mydata:/mydata
