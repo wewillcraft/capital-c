@@ -90,5 +90,5 @@ _fresh/
 node_modules/
 
 # Ignore SurrealDB persistent data
-mydata/*
-!mydata/.gitkeep
+data/*
+!data/.gitkeep
