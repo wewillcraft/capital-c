@@ -1,0 +1,189 @@
+---
+title: "Still We Gather - Cursor Rules"
+description: "Development guidelines for the open source church management system"
+version: "0.0.1"
+lastUpdated: "2025-07-09"
+techStack: ["Deno", "Fresh", "Preact", "TypeScript", "Tailwind", "SurrealDB", "Zod", "GraphQL"]
+projectType: "Web Application"
+framework: "Deno Fresh"
+---
+
+# Cursor Rules
+
+## Project Context
+
+- Building a church management system (ChMS)
+- Multi-tenant architecture with data isolation
+- Focus on privacy and ethical data handling
+- No financial tracking features
+- Open source with community contributions
+
+## General Principles
+
+- Write code that's easy to read and maintain
+- Follow the principle of least surprise
+- Prefer explicit over implicit
+- Consider the next developer who will read this code
+
+## Technology Expertise
+
+- Be an expert in Deno, TypeScript, Tailwind CSS, SurrealDB, Zod, and GraphQL
+- Use Deno's built-in tools and APIs effectively
+- Leverage TypeScript's type system for better code quality
+- Utilize Tailwind's utility-first approach efficiently
+- Apply SurrealDB best practices for data modeling and queries
+- Use Zod for runtime validation and type safety
+- Implement GraphQL for complex data fetching and real-time updates
+
+## Web Framework
+
+- Use Deno Fresh as the web framework
+- Fresh is based on Preact (React-like but lighter)
+- Follow Fresh's file-based routing conventions
+- Use Fresh's built-in islands architecture for interactive components
+- Leverage Fresh's server-side rendering capabilities
+- Use Preact hooks and patterns (useState, useEffect, etc.)
+
+## Code Style
+
+- Match the existing style in the file
+- Use consistent naming conventions
+- Keep functions small and focused
+- Add meaningful comments for complex logic
+
+## Deno-Specific
+
+- Use Deno's standard library when appropriate
+- Follow Deno's security model and permissions
+- Prefer Deno's import maps over package.json
+- Use Deno's built-in testing framework
+- Leverage Deno's TypeScript support without additional configuration
+
+## TypeScript Best Practices
+
+- Use strict type checking
+- Prefer interfaces over types for object shapes
+- Use generics when appropriate
+- Leverage union types and discriminated unions
+- Use utility types effectively
+
+## Tailwind CSS
+
+- Use utility classes efficiently
+- Prefer Tailwind's design system over custom CSS
+- Use responsive design utilities
+- Leverage Tailwind's component extraction when needed
+- Follow mobile-first responsive design
+
+## SurrealDB
+
+- Use proper authentication and authorization
+- Leverage SurrealDB's graph capabilities when appropriate
+- Use efficient queries and indexes
+- Follow SurrealDB's data modeling best practices
+- Use transactions for data consistency
+
+## Error Handling
+
+- Always handle potential errors
+- Provide meaningful error messages
+- Consider edge cases
+- Fail fast and explicitly
+
+## Performance
+
+- Consider performance implications
+- Avoid premature optimization
+- Use appropriate data structures
+- Be mindful of memory usage
+
+## Testing
+
+- Write tests for critical functionality
+- Make code testable
+- Use descriptive test names
+- Test edge cases
+
+## Documentation
+
+- Document public APIs
+- Explain complex algorithms
+- Keep documentation up to date
+- Use clear, concise language
+
+## Multi-Tenancy Architecture
+
+- Always scope data access by tenant
+- Use tenant context in all database queries
+- Implement proper RBAC per tenant
+- Ensure data isolation at the database level
+- Handle tenant switching in authentication
+
+## Domain-Specific Patterns
+
+- Member management with privacy controls
+- Event management with RSVP functionality
+- Communication tools (email/SMS)
+- Custom data modeling (CMS-style)
+- Role-based access for church staff
+
+## Security & Privacy
+
+- Implement tenant isolation at all layers
+- Use JWT with tenant claims
+- Follow GDPR principles for data handling
+- Minimize data collection
+- Implement audit logging
+- Use secure authentication (passwordless preferred)
+
+## Performance
+
+- Optimize for church-scale usage (100-1000 users)
+- Use Fresh's islands for interactive components
+- Leverage SurrealDB's real-time capabilities
+- Implement proper caching strategies
+- Consider mobile performance for church staff
+
+## Accessibility
+
+- Follow WCAG 2.1 guidelines
+- Ensure keyboard navigation works
+- Provide proper ARIA labels
+- Test with screen readers
+- Consider users with varying technical skills
+
+## Data Validation & Type Safety
+
+- Use Zod for all runtime validation
+- Define schemas for API inputs, database models, and form data
+- Leverage Zod's type inference with TypeScript
+- Use Zod for parsing and transforming data
+- Implement validation at API boundaries
+- Use Zod's error handling for user-friendly messages
+
+## API Design
+
+- Use Fresh's API routes for simple CRUD operations
+- Implement GraphQL for complex data fetching and relationships
+- Use Zod schemas for request/response validation
+- Return consistent error formats
+- Implement proper HTTP status codes
+- Leverage GraphQL's type system for frontend type safety
+
+## GraphQL Implementation
+
+- Use GraphQL for complex queries and real-time subscriptions
+- Implement proper resolvers with tenant context
+- Use GraphQL Code Generator for TypeScript types
+- Leverage GraphQL's introspection for documentation
+- Implement proper error handling and field-level permissions
+- Use GraphQL fragments for reusable query parts
+- Consider GraphQL Federation for microservices architecture
+
+## Accessibility
+
+- Follow WCAG 2.1 guidelines
+- Ensure keyboard navigation works
+- Provide proper ARIA labels
+- Test with screen readers
+- Consider users with varying technical skills
