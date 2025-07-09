@@ -156,6 +156,7 @@ events, and communications — without financial features.
 
 ### 4. UX & Design Requirements
 
+- Mobile-first and fully responsive design is required for all frontend features
 - TailwindCSS-first design system
 - Mobile-first, lightweight interface
 - Minimal UI chrome — content and context focused

@@ -24,6 +24,7 @@ framework: "Deno Fresh"
 - Follow the principle of least surprise
 - Prefer explicit over implicit
 - Consider the next developer who will read this code
+- All frontend must be mobile-first and fully responsive
 
 ## Technology Expertise
 
@@ -179,6 +180,14 @@ framework: "Deno Fresh"
 - Implement proper error handling and field-level permissions
 - Use GraphQL fragments for reusable query parts
 - Consider GraphQL Federation for microservices architecture
+
+## Accessibility
+
+- Follow WCAG 2.1 guidelines
+- Ensure keyboard navigation works
+- Provide proper ARIA labels
+- Test with screen readers
+- Consider users with varying technical skills
 
 ## Accessibility
 
