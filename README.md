@@ -4,10 +4,15 @@
 
 Everything you need to shepherd your church.
 
+## Dependencies
+
+- [Deno](https://deno.com/)
+- [Docker](https://www.docker.com/)
+
 ## Development
 
-If you have all the dependencies installed, you can start the development server
-by running:
+Once you have all the dependencies installed, you can start the development
+server by running:
 
 ```bash
 deno task start

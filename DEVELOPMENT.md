@@ -78,8 +78,6 @@ docker compose up -d
   rm -rf data/*
   ```
 
----
-
 ## Database Bootstrapping and Multi-Tenant Setup
 
 After starting SurrealDB, follow these steps to initialize your database and
