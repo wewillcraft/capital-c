@@ -64,12 +64,12 @@ export default function Home(): JSX.Element {
               class="w-10 h-10 rounded"
               style={{ imageRendering: "auto" }}
             />
-            <span class="text-xl font-bold text-slate-900 tracking-tight">
+            <a href="/" class="text-xl font-bold text-slate-900 tracking-tight">
               Still We Gather
-            </span>
+            </a>
           </div>
           <a
-            href="#get-started"
+            href="/signup"
             class="mt-2 sm:mt-0 inline-block bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-semibold px-6 py-2 rounded-lg shadow transition focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2 w-full sm:w-auto text-center"
           >
             Get Started
@@ -174,7 +174,7 @@ export default function Home(): JSX.Element {
               Start for free, no credit card required. Open source, forever.
             </p>
             <a
-              href="#"
+              href="/signup"
               class="inline-block bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-semibold px-8 py-3 rounded-lg shadow transition focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2"
             >
               Get Started

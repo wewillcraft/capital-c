@@ -5,7 +5,10 @@
 import * as $_404 from "./routes/_404.tsx";
 import * as $_app from "./routes/_app.tsx";
 import * as $index from "./routes/index.tsx";
-
+import * as $login from "./routes/login.tsx";
+import * as $signup from "./routes/signup.tsx";
+import * as $auth_LoginForm from "./islands/auth/LoginForm.tsx";
+import * as $auth_SignupForm from "./islands/auth/SignupForm.tsx";
 import type { Manifest } from "$fresh/server.ts";
 
 const manifest = {
@@ -13,8 +16,13 @@ const manifest = {
     "./routes/_404.tsx": $_404,
     "./routes/_app.tsx": $_app,
     "./routes/index.tsx": $index,
+    "./routes/login.tsx": $login,
+    "./routes/signup.tsx": $signup,
   },
-  islands: {},
+  islands: {
+    "./islands/auth/LoginForm.tsx": $auth_LoginForm,
+    "./islands/auth/SignupForm.tsx": $auth_SignupForm,
+  },
   baseUrl: import.meta.url,
 } satisfies Manifest;
 
