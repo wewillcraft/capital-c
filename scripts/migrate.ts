@@ -207,7 +207,7 @@ async function getTenants(): Promise<string[]> {
     config.SURREALDB_GLOBAL_NAMESPACE,
     config.SURREALDB_GLOBAL_DATABASE,
   );
-  const tenants = await db.select<{ namespace: string }>("registry");
+  const tenants = await db.select<{ namespace: string }>("tenant");
   return Array.isArray(tenants) ? tenants.map((t) => t.namespace) : [];
 }
 

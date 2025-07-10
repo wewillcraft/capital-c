@@ -11,6 +11,7 @@ DEFINE FIELD email ON user TYPE string
     $value != NONE
     AND string::is::email($value);
 DEFINE FIELD password ON user TYPE string;
+DEFINE FIELD created_at ON user TYPE datetime;
 DEFINE FIELD enabled ON user TYPE bool;
 
 DEFINE ACCESS user ON DATABASE TYPE RECORD
@@ -19,6 +20,7 @@ DEFINE ACCESS user ON DATABASE TYPE RECORD
       name: $name,
       email: $email,
       password: crypto::argon2::generate($password),
+      created_at: time::now(),
       enabled: true
     }
   )
