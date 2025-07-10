@@ -1,6 +1,6 @@
 import { join } from "@std/path";
 import { RecordId, Surreal } from "surrealdb";
-import { load } from "@std/dotenv";
+import { load } from "jsr:@std/dotenv@0.225.5";
 
 await load({ export: true });
 
