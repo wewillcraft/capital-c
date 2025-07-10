@@ -1,11 +1,8 @@
 // deno run --allow-read --allow-write --allow-net scripts/migrations.ts <command> [...args]
 
-import { join } from "$std/path/mod.ts";
-import * as dotenv from "$std/dotenv/mod.ts";
+import { join } from "@std/path";
+import "@std/dotenv/load";
 import { RecordId, Surreal } from "surrealdb";
-
-// --- LOAD ENV ---
-await dotenv.load({ export: true });
 
 // --- CONFIG ---
 const SURREALDB_PROTOCOL = Deno.env.get("SURREALDB_PROTOCOL");
