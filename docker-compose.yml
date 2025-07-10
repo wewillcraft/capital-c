@@ -2,7 +2,7 @@ services:
   surrealdb:
     image: surrealdb/surrealdb:v2.1.8
     pull_policy: always
-    command: start --log $SURREALDB_LOG --user $SURREALDB_ADMIN_USER --pass $SURREALDB_ADMIN_PASS rocksdb:/data/stillwegather.db
+    command: start --log $SURREALDB_LOG_LEVEL --user $SURREALDB_ROOT_USERNAME --pass $SURREALDB_ROOT_PASSWORD rocksdb:/data/stillwegather.db
     ports:
       - "${SURREALDB_PORT}:8000"
     volumes:

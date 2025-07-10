@@ -1,6 +1,6 @@
 import { join } from "@std/path";
 import { RecordId, Surreal } from "surrealdb";
-import { load } from "jsr:@std/dotenv@0.225.5";
+import { load } from "@std/dotenv";
 
 await load({ export: true });
 
@@ -11,10 +11,10 @@ const SURREALDB_PORT = Deno.env.get("SURREALDB_PORT");
 const SURREALDB_URL = `${SURREALDB_PROTOCOL}://${SURREALDB_HOST}${
   SURREALDB_PORT ? `:${SURREALDB_PORT}` : ""
 }`;
-const SURREALDB_ADMIN_USER = Deno.env.get("SURREALDB_ADMIN_USER");
-const SURREALDB_ADMIN_PASS = Deno.env.get("SURREALDB_ADMIN_PASS");
-const SURREALDB_NAMESPACE = Deno.env.get("SURREALDB_NAMESPACE");
-const SURREALDB_DATABASE = Deno.env.get("SURREALDB_DATABASE");
+const SURREALDB_ROOT_USERNAME = Deno.env.get("SURREALDB_ROOT_USERNAME");
+const SURREALDB_ROOT_PASSWORD = Deno.env.get("SURREALDB_ROOT_PASSWORD");
+const SURREALDB_GLOBAL_NAMESPACE = Deno.env.get("SURREALDB_GLOBAL_NAMESPACE");
+const SURREALDB_GLOBAL_DATABASE = Deno.env.get("SURREALDB_GLOBAL_DATABASE");
 
 const MIGRATIONS_DIR = "migrations";
 const MIGRATION_TABLE = "_migration";
@@ -27,11 +27,11 @@ type Migration = {
 // --- DB CLIENT ---
 const db = new Surreal();
 await db.connect(SURREALDB_URL, {
-  namespace: SURREALDB_NAMESPACE,
-  database: SURREALDB_DATABASE,
+  namespace: SURREALDB_GLOBAL_NAMESPACE,
+  database: SURREALDB_GLOBAL_DATABASE,
   auth: {
-    username: SURREALDB_ADMIN_USER ?? "",
-    password: SURREALDB_ADMIN_PASS ?? "",
+    username: SURREALDB_ROOT_USERNAME ?? "",
+    password: SURREALDB_ROOT_PASSWORD ?? "",
   },
 });
 

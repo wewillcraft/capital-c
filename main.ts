@@ -4,7 +4,7 @@
 /// <reference lib="dom.asynciterable" />
 /// <reference lib="deno.ns" />
 
-import { load } from "jsr:@std/dotenv@0.225.5";
+import { load } from "@std/dotenv";
 await load({ export: true });
 
 import { start } from "$fresh/server.ts";

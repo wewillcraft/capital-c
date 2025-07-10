@@ -48,9 +48,9 @@ Copy the example below to a file named `.env` in the project root (do NOT commit
 real secrets):
 
 ```env
-SURREALDB_USER=your_secure_user
-SURREALDB_PASS=your_secure_password
-SURREALDB_LOG=info
+SURREALDB_ROOT_USERNAME=your_secure_user
+SURREALDB_ROOT_PASSWORD=your_secure_password
+SURREALDB_LOG_LEVEL=info
 SURREALDB_PORT=8000
 ```
 
