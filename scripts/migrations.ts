@@ -29,18 +29,16 @@ type Migration = {
 
 // --- DB CLIENT ---
 const db = new Surreal();
-await db.connect(SURREALDB_URL);
-
-async function surrealConnect() {
-  await db.use({
-    namespace: SURREALDB_NAMESPACE ?? "",
-    database: SURREALDB_DATABASE ?? "",
-  });
-  await db.signin({
+await db.connect(SURREALDB_URL, {
+  namespace: SURREALDB_NAMESPACE,
+  database: SURREALDB_DATABASE,
+  auth: {
+    namespace: SURREALDB_NAMESPACE,
+    database: SURREALDB_DATABASE,
     username: SURREALDB_ADMIN_USER ?? "",
     password: SURREALDB_ADMIN_PASS ?? "",
-  });
-}
+  },
+});
 
 // --- UTILS ---
 function nowTimestamp() {
@@ -88,13 +86,11 @@ async function readMigrationFile(filename: string) {
 }
 
 async function getAppliedMigrations(): Promise<Migration[]> {
-  await surrealConnect();
   const rows = await db.select<Migration>(MIGRATION_TABLE);
   return rows;
 }
 
 async function markMigrationApplied(filename: string) {
-  await surrealConnect();
   await db.create<Migration>(new RecordId(MIGRATION_TABLE, filename), {
     filename,
     applied_at: new Date().toISOString(),
@@ -102,7 +98,6 @@ async function markMigrationApplied(filename: string) {
 }
 
 async function unmarkMigrationApplied(filename: string) {
-  await surrealConnect();
   await db.delete(new RecordId(MIGRATION_TABLE, filename));
 }
 
