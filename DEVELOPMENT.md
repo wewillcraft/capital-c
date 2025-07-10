@@ -94,5 +94,46 @@ docker compose up -d
 
 ---
 
+## Database Bootstrapping and Multi-Tenant Setup
+
+After starting SurrealDB, follow these steps to initialize your database and
+create your first tenant:
+
+### 1. Apply Global Migrations
+
+This sets up the global schema (users, tenant registry, etc):
+
+```sh
+deno task migrate apply global
+```
+
+### 2. Create a Root User (Admin)
+
+This will interactively prompt for name, email, and password:
+
+```sh
+deno task users create
+```
+
+### 3. Create a Tenant and Link to Root User
+
+This creates a new tenant namespace, applies all tenant migrations, and links
+the tenant to the root user by email:
+
+```sh
+deno task tenants create <name> <display_name> <root_user_email>
+# Example:
+deno task tenants create favor "Favor Church" admin@example.com
+```
+
+This will:
+
+- Create a new SurrealDB namespace for the tenant
+- Insert a tenant record in the global namespace
+- Link the root user to the tenant with graph edges
+- Apply all tenant migrations to the new namespace
+
+---
+
 See `docker-compose.yml` for service configuration details. The `version`
 attribute is no longer required or present in the Compose file.
