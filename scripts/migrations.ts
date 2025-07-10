@@ -5,7 +5,7 @@ import * as dotenv from "$std/dotenv/mod.ts";
 import { RecordId, Surreal } from "surrealdb";
 
 // --- LOAD ENV ---
-await dotenv.load({ export: true, examplePath: null, allowEmptyValues: true });
+await dotenv.load({ export: true });
 
 // --- CONFIG ---
 const SURREALDB_PROTOCOL = Deno.env.get("SURREALDB_PROTOCOL");
