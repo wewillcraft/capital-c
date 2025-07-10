@@ -4,7 +4,7 @@ BEGIN TRANSACTION;
 
 DEFINE TABLE user SCHEMAFULL
   PERMISSIONS 
-    FOR select, update WHERE id = $auth.id, 
+    FOR select, update WHERE id = $auth.id,
     FOR create, delete NONE;
 DEFINE FIELD email ON user TYPE string
   ASSERT

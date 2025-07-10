@@ -8,7 +8,7 @@
     "build": "deno run -A dev.ts build",
     "preview": "deno run -A main.ts",
     "update": "deno run -A -r https://fresh.deno.dev/update .",
-    "migrate": "deno run -A scripts/migrate.ts"
+    "migrate-old": "deno run -A scripts/migrate-old.ts"
   },
   "lint": {
     "rules": {
