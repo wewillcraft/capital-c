@@ -148,7 +148,7 @@ async function create(desc: string) {
   await Deno.writeTextFile(
     fpath,
     `
--- Migration: ${desc}
+-- Description: ${desc}
 
 BEGIN TRANSACTION;
 
@@ -157,8 +157,19 @@ BEGIN TRANSACTION;
 COMMIT TRANSACTION;
 `,
   );
-  await Deno.writeTextFile(downFpath, `-- Down migration: ${desc}\n`);
-  console.log(`Created migration: ${fpath}`);
+  await Deno.writeTextFile(
+    downFpath,
+    `
+-- Description: ${desc}
+
+BEGIN TRANSACTION;
+
+-- Your migration code here
+
+COMMIT TRANSACTION;
+`,
+  );
+  console.log(`Created up migration: ${fpath}`);
   console.log(`Created down migration: ${downFpath}`);
 }
 
@@ -265,9 +276,6 @@ if (import.meta.main) {
       } else {
         await apply();
       }
-      break;
-    case "down":
-      await applyDown(args[0]);
       break;
     case "list":
       await list();
