@@ -5,14 +5,20 @@ import * as dotenv from "$std/dotenv/mod.ts";
 import { RecordId, Surreal } from "surrealdb";
 
 // --- LOAD ENV ---
-await dotenv.load({ export: true });
+await dotenv.load({ export: true, allowEmptyValues: true });
 
 // --- CONFIG ---
-const DB_URL = Deno.env.get("SURREALDB_URL") || "http://localhost:8000/rpc";
-const DB_USER = Deno.env.get("SURREALDB_ADMIN_USER") || "root";
-const DB_PASS = Deno.env.get("SURREALDB_ADMIN_PASS") || "root";
-const DB_NS = Deno.env.get("SURREALDB_NAMESPACE") || "test";
-const DB_DB = Deno.env.get("SURREALDB_DATABASE") || "test";
+const SURREALDB_PROTOCOL = Deno.env.get("SURREALDB_PROTOCOL");
+const SURREALDB_HOST = Deno.env.get("SURREALDB_HOST");
+const SURREALDB_PORT = Deno.env.get("SURREALDB_PORT");
+const SURREALDB_URL = `${SURREALDB_PROTOCOL}://${SURREALDB_HOST}${
+  SURREALDB_PORT ? `:${SURREALDB_PORT}` : ""
+}/rpc`;
+const SURREALDB_ADMIN_USER = Deno.env.get("SURREALDB_ADMIN_USER");
+const SURREALDB_ADMIN_PASS = Deno.env.get("SURREALDB_ADMIN_PASS");
+const SURREALDB_NAMESPACE = Deno.env.get("SURREALDB_NAMESPACE");
+const SURREALDB_DATABASE = Deno.env.get("SURREALDB_DATABASE");
+
 const MIGRATIONS_DIR = "migrations";
 const MIGRATION_TABLE = "_migration";
 
@@ -23,11 +29,17 @@ type Migration = {
 
 // --- DB CLIENT ---
 const db = new Surreal();
-await db.connect(DB_URL);
+await db.connect(SURREALDB_URL);
 
 async function surrealConnect() {
-  await db.use({ namespace: DB_NS, database: DB_DB });
-  await db.signin({ username: DB_USER, password: DB_PASS });
+  await db.use({
+    namespace: SURREALDB_NAMESPACE ?? "",
+    database: SURREALDB_DATABASE ?? "",
+  });
+  await db.signin({
+    username: SURREALDB_ADMIN_USER ?? "",
+    password: SURREALDB_ADMIN_PASS ?? "",
+  });
 }
 
 // --- UTILS ---
@@ -249,13 +261,6 @@ Usage:
   migrations.ts apply           Apply all pending migrations
   migrations.ts list            List all migrations and their status
   migrations.ts help            Show this help message
-
-Config via env:
-  SURREALDB_URL
-  SURREALDB_ADMIN_USER
-  SURREALDB_ADMIN_PASS
-  SURREALDB_NAMESPACE
-  SURREALDB_DATABASE
 `);
 }
 
@@ -285,4 +290,5 @@ if (import.meta.main) {
       help();
       break;
   }
+  await db.close();
 }
