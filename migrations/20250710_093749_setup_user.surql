@@ -1,13 +1,15 @@
 -- Migration: setup_user
 
+BEGIN TRANSACTION;
+
 DEFINE TABLE user SCHEMAFULL
-    PERMISSIONS 
-        FOR select, update WHERE id = $auth.id, 
-        FOR create, delete NONE;
+  PERMISSIONS 
+    FOR select, update WHERE id = $auth.id, 
+    FOR create, delete NONE;
 DEFINE FIELD email ON user TYPE string
-    ASSERT
-        $value != NONE
-        AND string::is::email($value);
+  ASSERT
+    $value != NONE
+    AND string::is::email($value);
 DEFINE FIELD password ON user TYPE string;
 DEFINE FIELD enabled ON user TYPE bool;
 
@@ -33,3 +35,5 @@ DEFINE ACCESS user ON DATABASE TYPE RECORD
   };
 
 DEFINE INDEX user_email_index ON user COLUMNS email UNIQUE;
+
+COMMIT TRANSACTION;

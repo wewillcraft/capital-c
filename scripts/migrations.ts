@@ -59,7 +59,11 @@ function sanitizeDesc(desc: string) {
 async function listMigrationFiles() {
   const files: string[] = [];
   for await (const entry of Deno.readDir(MIGRATIONS_DIR)) {
-    if (entry.isFile && entry.name.endsWith(".surql")) {
+    if (
+      entry.isFile &&
+      entry.name.endsWith(".surql") &&
+      !entry.name.endsWith(".down.surql")
+    ) {
       files.push(entry.name);
     }
   }
@@ -85,6 +89,37 @@ async function markMigrationApplied(filename: string) {
   });
 }
 
+async function unmarkMigrationApplied(filename: string) {
+  await surrealConnect();
+  await db.delete(new RecordId(MIGRATION_TABLE, filename));
+}
+
+async function applyDown(filename: string) {
+  if (!filename) {
+    console.error("Filename is required.");
+    return;
+  }
+  await ensureMigrationsDir();
+  const base = filename.replace(/\.down\.surql$|\.surql$/i, "");
+  const files = await listMigrationFiles();
+  const match = files.find((f) => f.startsWith(base));
+  if (!match) {
+    console.error(`Migration file not found for base: ${base}`);
+    return;
+  }
+  const downFile = match.replace(/\.surql$/, ".down.surql");
+  try {
+    const sql = await readMigrationFile(downFile);
+    console.log(`Applying down migration: ${downFile}`);
+    await db.query(sql);
+    await unmarkMigrationApplied(match);
+    console.log(`Rolled back migration: ${match}`);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error(`Failed to apply down migration: ${downFile}: ${msg}`);
+  }
+}
+
 function printTable(rows: { [key: string]: string }[], columns: string[]) {
   if (!rows.length) return;
   const colWidths = columns.map((col) =>
@@ -107,32 +142,78 @@ async function create(desc: string) {
   const ts = nowTimestamp();
   const safeDesc = sanitizeDesc(desc);
   const fname = `${ts}_${safeDesc}.surql`;
+  const downFname = `${ts}_${safeDesc}.down.surql`;
   const fpath = join(MIGRATIONS_DIR, fname);
-  await Deno.writeTextFile(fpath, `-- Migration: ${desc}\n`);
+  const downFpath = join(MIGRATIONS_DIR, downFname);
+  await Deno.writeTextFile(
+    fpath,
+    `
+-- Migration: ${desc}
+
+BEGIN TRANSACTION;
+
+-- Your migration code here
+
+COMMIT TRANSACTION;
+`,
+  );
+  await Deno.writeTextFile(downFpath, `-- Down migration: ${desc}\n`);
   console.log(`Created migration: ${fpath}`);
+  console.log(`Created down migration: ${downFpath}`);
 }
 
-async function apply() {
+async function apply(target?: string) {
   await ensureMigrationsDir();
   const files = await listMigrationFiles();
   const appliedRows = await getAppliedMigrations();
   const applied = new Set(appliedRows.map((row) => row.filename));
   let appliedCount = 0;
-  for (const file of files) {
-    if (applied.has(file)) {
-      console.log(`Already applied: ${file}`);
-      continue;
+  const failed: string[] = [];
+  if (target && target !== "--all") {
+    if (!files.includes(target)) {
+      console.error(`Migration file not found: ${target}`);
+      return;
     }
-    const sql = await readMigrationFile(file);
-    console.log(`Applying: ${file}`);
-    await db.query(sql);
-    await markMigrationApplied(file);
-    appliedCount++;
+    if (applied.has(target)) {
+      console.log(`Already applied: ${target}`);
+      return;
+    }
+    try {
+      const sql = await readMigrationFile(target);
+      console.log(`Applying: ${target}`);
+      await db.query(sql);
+      await markMigrationApplied(target);
+      appliedCount++;
+    } catch (e) {
+      console.error(`Failed to apply ${target}: ${e}`);
+      failed.push(target);
+    }
+  } else {
+    for (const file of files) {
+      if (applied.has(file)) {
+        console.log(`Already applied: ${file}`);
+        continue;
+      }
+      try {
+        const sql = await readMigrationFile(file);
+        console.log(`Applying: ${file}`);
+        await db.query(sql);
+        await markMigrationApplied(file);
+        appliedCount++;
+      } catch (e) {
+        console.error(`Failed to apply ${file}: ${e}`);
+        failed.push(file);
+      }
+    }
   }
   if (appliedCount === 0) {
-    console.log("No new migrations to apply.");
-  } else {
+    console.log("No new migrations applied.");
+  } else if (!failed.length) {
     console.log(`Applied ${appliedCount} migration(s).`);
+  }
+  if (failed.length) {
+    console.log("Failed migrations:");
+    for (const f of failed) console.log(`  - ${f}`);
   }
 }
 
@@ -179,7 +260,14 @@ if (import.meta.main) {
       await create(args.join("_"));
       break;
     case "apply":
-      await apply();
+      if (args[0] && args[0] !== "--all") {
+        await apply(args[0]);
+      } else {
+        await apply();
+      }
+      break;
+    case "down":
+      await applyDown(args[0]);
       break;
     case "list":
       await list();
