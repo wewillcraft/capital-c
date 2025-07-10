@@ -13,7 +13,7 @@ const SURREALDB_HOST = Deno.env.get("SURREALDB_HOST");
 const SURREALDB_PORT = Deno.env.get("SURREALDB_PORT");
 const SURREALDB_URL = `${SURREALDB_PROTOCOL}://${SURREALDB_HOST}${
   SURREALDB_PORT ? `:${SURREALDB_PORT}` : ""
-}/rpc`;
+}`;
 const SURREALDB_ADMIN_USER = Deno.env.get("SURREALDB_ADMIN_USER");
 const SURREALDB_ADMIN_PASS = Deno.env.get("SURREALDB_ADMIN_PASS");
 const SURREALDB_NAMESPACE = Deno.env.get("SURREALDB_NAMESPACE");
@@ -33,8 +33,6 @@ await db.connect(SURREALDB_URL, {
   namespace: SURREALDB_NAMESPACE,
   database: SURREALDB_DATABASE,
   auth: {
-    namespace: SURREALDB_NAMESPACE,
-    database: SURREALDB_DATABASE,
     username: SURREALDB_ADMIN_USER ?? "",
     password: SURREALDB_ADMIN_PASS ?? "",
   },
@@ -276,6 +274,9 @@ if (import.meta.main) {
       } else {
         await apply();
       }
+      break;
+    case "down":
+      await _applyDown(args[0]);
       break;
     case "list":
       await list();
