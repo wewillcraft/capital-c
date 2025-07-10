@@ -2,7 +2,7 @@
 
 import { join } from "$std/path/mod.ts";
 import * as dotenv from "$std/dotenv/mod.ts";
-import { RecordId, Surreal } from "jsr:@surrealdb/surrealdb";
+import { RecordId, Surreal } from "surrealdb";
 
 // --- LOAD ENV ---
 await dotenv.load({ export: true });
@@ -94,7 +94,7 @@ async function unmarkMigrationApplied(filename: string) {
   await db.delete(new RecordId(MIGRATION_TABLE, filename));
 }
 
-async function applyDown(filename: string) {
+async function _applyDown(filename: string) {
   if (!filename) {
     console.error("Filename is required.");
     return;
