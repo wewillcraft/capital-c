@@ -1,6 +1,7 @@
 import { Surreal } from "surrealdb";
 
 import config from "./lib/config.ts";
+import { connect } from "./lib/db.ts";
 
 const db = new Surreal();
 
@@ -16,10 +17,11 @@ async function createAdminUser() {
   const name = await prompt("Name: ");
   const email = await prompt("Email: ");
   const password = await prompt("Password: ");
-  await db.connect(config.SURREALDB_URL, {
-    namespace: config.SURREALDB_GLOBAL_NAMESPACE,
-    database: config.SURREALDB_GLOBAL_DATABASE,
-  });
+  await connect(
+    db,
+    config.SURREALDB_GLOBAL_NAMESPACE,
+    config.SURREALDB_GLOBAL_DATABASE,
+  );
   try {
     const res = await db.signup({
       namespace: config.SURREALDB_GLOBAL_NAMESPACE,
@@ -46,6 +48,8 @@ async function main() {
   } else {
     console.log("Usage: deno task users create");
   }
+  await db.close();
+  Deno.exit(0);
 }
 
 if (import.meta.main) {

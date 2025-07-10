@@ -2,6 +2,8 @@ import { join } from "@std/path";
 import { RecordId, Surreal } from "surrealdb";
 
 import config from "./lib/config.ts";
+import { connect } from "./lib/db.ts";
+
 import { Tenant } from "./lib/models.ts";
 
 import { applyMigrationsToNamespace } from "./migrate.ts";
@@ -16,22 +18,12 @@ function randomSuffix(len = 4) {
   return Math.random().toString(36).slice(-len);
 }
 
-async function connect(namespace: string, database: string) {
-  await db.connect(config.SURREALDB_URL, {
-    namespace,
-    database,
-    auth: {
-      username: config.SURREALDB_ROOT_USERNAME,
-      password: config.SURREALDB_ROOT_PASSWORD,
-    },
-  });
-}
-
 async function createTenant(name: string, displayName: string, email: string) {
   const sanitized = sanitizeName(name);
   const suffix = randomSuffix();
   const namespace = `tenant_${sanitized}_${suffix}`;
   await connect(
+    db,
     config.SURREALDB_GLOBAL_NAMESPACE,
     config.SURREALDB_GLOBAL_DATABASE,
   );
@@ -100,6 +92,7 @@ async function createTenant(name: string, displayName: string, email: string) {
 
 async function deleteTenantsByDisplayName(displayName: string) {
   await connect(
+    db,
     config.SURREALDB_GLOBAL_NAMESPACE,
     config.SURREALDB_GLOBAL_DATABASE,
   );
@@ -164,7 +157,9 @@ Usage:
   }
   console.log(`Unknown command: ${cmd}
 See: tenants.ts help`);
-  Deno.exit(1);
+
+  await db.close();
+  Deno.exit(0);
 }
 
 if (import.meta.main) {

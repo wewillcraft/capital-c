@@ -2,19 +2,9 @@ import { join } from "@std/path";
 import { RecordId, Surreal } from "surrealdb";
 
 import config from "./lib/config.ts";
+import { connect } from "./lib/db.ts";
 
 const db = new Surreal();
-
-async function connect(namespace: string, database: string) {
-  await db.connect(config.SURREALDB_URL, {
-    namespace,
-    database,
-    auth: {
-      username: config.SURREALDB_ROOT_USERNAME,
-      password: config.SURREALDB_ROOT_PASSWORD,
-    },
-  });
-}
 
 function nowTimestamp() {
   const d = new Date();
@@ -107,6 +97,7 @@ async function rollbackMigrations(
     .reverse();
   const toRollback = files.filter((f) => f.slice(0, 3) > version);
   await connect(
+    db,
     config.SURREALDB_GLOBAL_NAMESPACE,
     config.SURREALDB_GLOBAL_DATABASE,
   );
@@ -118,6 +109,7 @@ async function rollbackMigrations(
       console.log(`Rolling back: ${downFile}`);
       await db.query(sql);
       await connect(
+        db,
         target === "global" ? config.SURREALDB_GLOBAL_NAMESPACE : file,
         config.SURREALDB_TENANT_DATABASE,
       );
@@ -137,13 +129,13 @@ async function rollbackTenantMigrations(namespace: string, version: string) {
     .sort()
     .reverse();
   const toRollback = files.filter((f) => f.slice(0, 3) > version);
-  await connect(namespace, config.SURREALDB_TENANT_DATABASE);
+  await connect(db, namespace, config.SURREALDB_TENANT_DATABASE);
   for (const file of toRollback) {
     const downFile = file.replace(/\.surql$/, ".down.surql");
     try {
       const sql = await readMigrationFile(dir, downFile);
       console.log(`[${namespace}] Rolling back: ${downFile}`);
-      await connect(namespace, config.SURREALDB_TENANT_DATABASE);
+      await connect(db, namespace, config.SURREALDB_TENANT_DATABASE);
       await db.query(sql);
       await db.delete(new RecordId(config.MIGRATION_TABLE, file));
     } catch (e) {
@@ -155,7 +147,7 @@ async function rollbackTenantMigrations(namespace: string, version: string) {
 }
 
 async function getAppliedMigrations(namespace: string): Promise<string[]> {
-  await connect(namespace, config.SURREALDB_TENANT_DATABASE);
+  await connect(db, namespace, config.SURREALDB_TENANT_DATABASE);
   try {
     const rows = await db.select<{ filename: string }>(config.MIGRATION_TABLE);
     return Array.isArray(rows) ? rows.map((r) => r.filename) : [];
@@ -165,7 +157,7 @@ async function getAppliedMigrations(namespace: string): Promise<string[]> {
 }
 
 async function markMigrationApplied(namespace: string, filename: string) {
-  await connect(namespace, config.SURREALDB_TENANT_DATABASE);
+  await connect(db, namespace, config.SURREALDB_TENANT_DATABASE);
   await db.create(new RecordId(config.MIGRATION_TABLE, filename), {
     filename,
     applied_at: new Date().toISOString(),
@@ -186,7 +178,7 @@ export async function applyMigrationsToNamespace(
     }
     const sql = await readMigrationFile(dir, file);
     try {
-      await connect(namespace, config.SURREALDB_TENANT_DATABASE);
+      await connect(db, namespace, config.SURREALDB_TENANT_DATABASE);
       await db.query(sql);
       await markMigrationApplied(namespace, file);
       appliedCount++;
@@ -204,6 +196,7 @@ export async function applyMigrationsToNamespace(
 
 async function getTenants(): Promise<string[]> {
   await connect(
+    db,
     config.SURREALDB_GLOBAL_NAMESPACE,
     config.SURREALDB_GLOBAL_DATABASE,
   );
@@ -217,7 +210,7 @@ async function main() {
     case "create": {
       const [target, ...descArr] = args;
       if (!target || !descArr.length) {
-        console.error("Usage: migrate create [global|tenants] <description>");
+        console.error("Usage: migrate create (global|tenants) <description>");
         Deno.exit(1);
       }
       await createMigrationFiles(
@@ -261,7 +254,7 @@ async function main() {
         const [target, version] = args;
         if (!target || !version) {
           console.error(
-            "Usage: migrate rollback [global|tenants] [NNN] or migrate rollback tenant <namespace> [NNN]",
+            "Usage: migrate rollback (global|tenants) [NNN] or migrate rollback tenant <namespace> [NNN]",
           );
           Deno.exit(1);
         }
@@ -298,6 +291,7 @@ Usage:
       break;
   }
   await db.close();
+  Deno.exit(0);
 }
 
 if (import.meta.main) {
