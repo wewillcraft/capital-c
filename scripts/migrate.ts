@@ -4,38 +4,38 @@ import { load } from "@std/dotenv";
 
 await load({ export: true });
 
-// --- CONFIG ---
-const SURREALDB_PROTOCOL = Deno.env.get("SURREALDB_PROTOCOL");
-const SURREALDB_HOST = Deno.env.get("SURREALDB_HOST");
-const SURREALDB_PORT = Deno.env.get("SURREALDB_PORT");
-const SURREALDB_URL = `${SURREALDB_PROTOCOL}://${SURREALDB_HOST}${
-  SURREALDB_PORT ? `:${SURREALDB_PORT}` : ""
-}`;
-const SURREALDB_ROOT_USERNAME = Deno.env.get("SURREALDB_ROOT_USERNAME");
-const SURREALDB_ROOT_PASSWORD = Deno.env.get("SURREALDB_ROOT_PASSWORD");
-const SURREALDB_GLOBAL_NAMESPACE = Deno.env.get("SURREALDB_GLOBAL_NAMESPACE");
-const SURREALDB_GLOBAL_DATABASE = Deno.env.get("SURREALDB_GLOBAL_DATABASE");
+const SURREALDB_PROTOCOL = Deno.env.get("SURREALDB_PROTOCOL") ?? "http";
+const SURREALDB_HOST = Deno.env.get("SURREALDB_HOST") ?? "localhost";
+const SURREALDB_PORT = Deno.env.get("SURREALDB_PORT") ?? "8000";
+const SURREALDB_URL =
+  `${SURREALDB_PROTOCOL}://${SURREALDB_HOST}:${SURREALDB_PORT}`;
+const SURREALDB_ROOT_USERNAME = Deno.env.get("SURREALDB_ROOT_USERNAME") ??
+  "root";
+const SURREALDB_ROOT_PASSWORD = Deno.env.get("SURREALDB_ROOT_PASSWORD") ??
+  "root";
+const SURREALDB_GLOBAL_NAMESPACE = Deno.env.get("SURREALDB_GLOBAL_NAMESPACE") ??
+  "global";
+const SURREALDB_TENANT_DATABASE = Deno.env.get("SURREALDB_TENANT_DATABASE") ??
+  "prod";
+const SURREALDB_GLOBAL_DATABASE = Deno.env.get("SURREALDB_GLOBAL_DATABASE") ??
+  "prod";
 
+const MIGRATION_TABLE = "_migrations";
 const MIGRATIONS_DIR = "migrations";
-const MIGRATION_TABLE = "_migration";
 
-type Migration = {
-  filename: string;
-  applied_at: string;
-};
-
-// --- DB CLIENT ---
 const db = new Surreal();
-await db.connect(SURREALDB_URL, {
-  namespace: SURREALDB_GLOBAL_NAMESPACE,
-  database: SURREALDB_GLOBAL_DATABASE,
-  auth: {
-    username: SURREALDB_ROOT_USERNAME ?? "",
-    password: SURREALDB_ROOT_PASSWORD ?? "",
-  },
-});
 
-// --- UTILS ---
+async function connect(namespace: string, database: string) {
+  await db.connect(SURREALDB_URL, {
+    namespace,
+    database,
+    auth: {
+      username: SURREALDB_ROOT_USERNAME,
+      password: SURREALDB_ROOT_PASSWORD,
+    },
+  });
+}
+
 function nowTimestamp() {
   const d = new Date();
   const pad = (n: number) => n.toString().padStart(2, "0");
@@ -49,21 +49,21 @@ function nowTimestamp() {
   );
 }
 
-async function ensureMigrationsDir() {
+function sanitizeDescription(description: string) {
+  return description.replace(/[^a-zA-Z0-9_\-]/g, "_");
+}
+
+async function ensureDir(dir: string) {
   try {
-    await Deno.stat(MIGRATIONS_DIR);
+    await Deno.stat(dir);
   } catch {
-    await Deno.mkdir(MIGRATIONS_DIR);
+    await Deno.mkdir(dir, { recursive: true });
   }
 }
 
-function sanitizeDesc(desc: string) {
-  return desc.replace(/[^a-zA-Z0-9_\-]/g, "_");
-}
-
-async function listMigrationFiles() {
+async function listMigrationFiles(dir: string) {
   const files: string[] = [];
-  for await (const entry of Deno.readDir(MIGRATIONS_DIR)) {
+  for await (const entry of Deno.readDir(dir)) {
     if (
       entry.isFile &&
       entry.name.endsWith(".surql") &&
@@ -76,212 +76,241 @@ async function listMigrationFiles() {
   return files;
 }
 
-async function readMigrationFile(filename: string) {
-  return await Deno.readTextFile(join(MIGRATIONS_DIR, filename));
+async function readMigrationFile(dir: string, filename: string) {
+  return await Deno.readTextFile(join(dir, filename));
 }
 
-async function getAppliedMigrations(): Promise<Migration[]> {
-  const rows = await db.select<Migration>(MIGRATION_TABLE);
-  return rows;
+async function nextMigrationPrefix(dir: string): Promise<string> {
+  return await listMigrationFiles(dir).then((files) => {
+    const nums = files
+      .map((f) => parseInt(f.slice(0, 3)))
+      .filter((n) => !isNaN(n));
+    const next = nums.length ? Math.max(...nums) + 1 : 1;
+    return String(next).padStart(3, "0");
+  });
 }
 
-async function markMigrationApplied(filename: string) {
-  await db.create<Migration>(new RecordId(MIGRATION_TABLE, filename), {
+async function createMigrationFiles(
+  target: "global" | "tenants",
+  desc: string,
+) {
+  const now = nowTimestamp();
+  const safeDesc = sanitizeDescription(desc);
+  const dir = join(MIGRATIONS_DIR, target);
+  await ensureDir(dir);
+  const prefix = await nextMigrationPrefix(dir);
+  const base = `${prefix}_${now}_${safeDesc}`;
+  const fpath = join(dir, `${base}.surql`);
+  const downFpath = join(dir, `${base}.down.surql`);
+  const template = `-- Migration: ${desc}
+
+BEGIN TRANSACTION;
+
+-- Your migration code here
+
+COMMIT TRANSACTION;
+`;
+  await Deno.writeTextFile(fpath, template);
+  await Deno.writeTextFile(downFpath, template);
+  console.log(`Created ${target} up migration file: ${fpath}`);
+  console.log(`Created ${target} down migration file: ${downFpath}`);
+}
+
+async function rollbackMigrations(
+  target: "global" | "tenants",
+  version: string,
+) {
+  const dir = join(MIGRATIONS_DIR, target);
+  const files = (await listMigrationFiles(dir))
+    .filter((f) => f.match(/^\d{3}_/))
+    .sort()
+    .reverse();
+  const toRollback = files.filter((f) => f.slice(0, 3) > version);
+  await connect(SURREALDB_GLOBAL_NAMESPACE, SURREALDB_GLOBAL_DATABASE);
+
+  for (const file of toRollback) {
+    const downFile = file.replace(/\.surql$/, ".down.surql");
+    try {
+      const sql = await readMigrationFile(dir, downFile);
+      console.log(`Rolling back: ${downFile}`);
+      await db.query(sql);
+      await connect(
+        target === "global" ? SURREALDB_GLOBAL_NAMESPACE : file,
+        SURREALDB_TENANT_DATABASE,
+      );
+      await db.delete(new RecordId(MIGRATION_TABLE, file));
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error(`Failed to rollback ${downFile}: ${msg}`);
+      break;
+    }
+  }
+}
+
+async function rollbackTenantMigrations(namespace: string, version: string) {
+  const dir = join(MIGRATIONS_DIR, "tenants");
+  const files = (await listMigrationFiles(dir))
+    .filter((f) => f.match(/^\d{3}_/))
+    .sort()
+    .reverse();
+  const toRollback = files.filter((f) => f.slice(0, 3) > version);
+  await connect(namespace, SURREALDB_TENANT_DATABASE);
+  for (const file of toRollback) {
+    const downFile = file.replace(/\.surql$/, ".down.surql");
+    try {
+      const sql = await readMigrationFile(dir, downFile);
+      console.log(`[${namespace}] Rolling back: ${downFile}`);
+      await connect(namespace, SURREALDB_TENANT_DATABASE);
+      await db.query(sql);
+      await db.delete(new RecordId(MIGRATION_TABLE, file));
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error(`[${namespace}] Failed to rollback ${downFile}: ${msg}`);
+      break;
+    }
+  }
+}
+
+async function getAppliedMigrations(namespace: string): Promise<string[]> {
+  await connect(namespace, SURREALDB_TENANT_DATABASE);
+  try {
+    const rows = await db.select<{ filename: string }>(MIGRATION_TABLE);
+    return Array.isArray(rows) ? rows.map((r) => r.filename) : [];
+  } catch {
+    return [];
+  }
+}
+
+async function markMigrationApplied(namespace: string, filename: string) {
+  await connect(namespace, SURREALDB_TENANT_DATABASE);
+  await db.create(new RecordId(MIGRATION_TABLE, filename), {
     filename,
     applied_at: new Date().toISOString(),
   });
 }
 
-async function unmarkMigrationApplied(filename: string) {
-  await db.delete(new RecordId(MIGRATION_TABLE, filename));
-}
-
-async function _applyDown(filename: string) {
-  if (!filename) {
-    console.error("Filename is required.");
-    return;
-  }
-  await ensureMigrationsDir();
-  const base = filename.replace(/\.down\.surql$|\.surql$/i, "");
-  const files = await listMigrationFiles();
-  const match = files.find((f) => f.startsWith(base));
-  if (!match) {
-    console.error(`Migration file not found for base: ${base}`);
-    return;
-  }
-  const downFile = match.replace(/\.surql$/, ".down.surql");
-  try {
-    const sql = await readMigrationFile(downFile);
-    console.log(`Applying down migration: ${downFile}`);
-    await db.query(sql);
-    await unmarkMigrationApplied(match);
-    console.log(`Rolled back migration: ${match}`);
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    console.error(`Failed to apply down migration: ${downFile}: ${msg}`);
-  }
-}
-
-function printTable(rows: { [key: string]: string }[], columns: string[]) {
-  if (!rows.length) return;
-  const colWidths = columns.map((col) =>
-    Math.max(col.length, ...rows.map((row) => (row[col] || "").length))
-  );
-  const header = columns.map((col, i) => col.padEnd(colWidths[i])).join("  ");
-  const sep = columns.map((_, i) => "-".repeat(colWidths[i])).join("  ");
-  console.log(header);
-  console.log(sep);
-  for (const row of rows) {
-    console.log(
-      columns.map((col, i) => (row[col] || "").padEnd(colWidths[i])).join("  "),
-    );
-  }
-}
-
-// --- COMMANDS ---
-async function create(desc: string) {
-  await ensureMigrationsDir();
-  const ts = nowTimestamp();
-  const safeDesc = sanitizeDesc(desc);
-  const fname = `${ts}_${safeDesc}.surql`;
-  const downFname = `${ts}_${safeDesc}.down.surql`;
-  const fpath = join(MIGRATIONS_DIR, fname);
-  const downFpath = join(MIGRATIONS_DIR, downFname);
-  await Deno.writeTextFile(
-    fpath,
-    `
--- Description: ${desc}
-
-BEGIN TRANSACTION;
-
--- Your migration code here
-
-COMMIT TRANSACTION;
-`,
-  );
-  await Deno.writeTextFile(
-    downFpath,
-    `
--- Description: ${desc}
-
-BEGIN TRANSACTION;
-
--- Your migration code here
-
-COMMIT TRANSACTION;
-`,
-  );
-  console.log(`Created up migration: ${fpath}`);
-  console.log(`Created down migration: ${downFpath}`);
-}
-
-async function apply(target?: string) {
-  await ensureMigrationsDir();
-  const files = await listMigrationFiles();
-  const appliedRows = await getAppliedMigrations();
-  const applied = new Set(appliedRows.map((row) => row.filename));
+async function applyMigrationsToNamespace(dir: string, namespace: string) {
+  const files = await listMigrationFiles(dir);
+  const applied = new Set(await getAppliedMigrations(namespace));
   let appliedCount = 0;
-  const failed: string[] = [];
-  if (target && target !== "--all") {
-    if (!files.includes(target)) {
-      console.error(`Migration file not found: ${target}`);
-      return;
+  for (const file of files) {
+    if (applied.has(file)) {
+      console.log(`[${namespace}] Already applied: ${file}`);
+      continue;
     }
-    if (applied.has(target)) {
-      console.log(`Already applied: ${target}`);
-      return;
-    }
+    const sql = await readMigrationFile(dir, file);
     try {
-      const sql = await readMigrationFile(target);
-      console.log(`Applying: ${target}`);
+      await connect(namespace, SURREALDB_TENANT_DATABASE);
       await db.query(sql);
-      await markMigrationApplied(target);
+      await markMigrationApplied(namespace, file);
       appliedCount++;
+      console.log(`[${namespace}] Applied: ${file}`);
     } catch (e) {
-      console.error(`Failed to apply ${target}: ${e}`);
-      failed.push(target);
-    }
-  } else {
-    for (const file of files) {
-      if (applied.has(file)) {
-        console.log(`Already applied: ${file}`);
-        continue;
-      }
-      try {
-        const sql = await readMigrationFile(file);
-        console.log(`Applying: ${file}`);
-        await db.query(sql);
-        await markMigrationApplied(file);
-        appliedCount++;
-      } catch (e) {
-        console.error(`Failed to apply ${file}: ${e}`);
-        failed.push(file);
-      }
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error(`[${namespace}] Failed: ${file}: ${msg}`);
+      break;
     }
   }
-  if (appliedCount === 0) {
-    console.log("No new migrations applied.");
-  } else if (!failed.length) {
-    console.log(`Applied ${appliedCount} migration(s).`);
-  }
-  if (failed.length) {
-    console.log("Failed migrations:");
-    for (const f of failed) console.log(`  - ${f}`);
+  if (appliedCount) {
+    console.log(`[${namespace}] Applied ${appliedCount} migration(s).`);
   }
 }
 
-async function list() {
-  await ensureMigrationsDir();
-  const files = await listMigrationFiles();
-  const appliedRows = await getAppliedMigrations();
-  const appliedMap = new Map(
-    appliedRows.map((row) => [row.filename, row.applied_at]),
-  );
-  const table = files.map((file) => ({
-    filename: file,
-    applied_at: appliedMap.get(file) || "",
-  }));
-  printTable(table, ["filename", "applied_at"]);
+async function getTenants(): Promise<string[]> {
+  await connect(SURREALDB_GLOBAL_NAMESPACE, SURREALDB_GLOBAL_DATABASE);
+  const tenants = await db.select<{ namespace: string }>("registry");
+  return Array.isArray(tenants) ? tenants.map((t) => t.namespace) : [];
 }
 
-function help() {
-  console.log(`
-Usage:
-  migrations.ts create <desc>   Create a new migration file
-  migrations.ts apply           Apply all pending migrations
-  migrations.ts list            List all migrations and their status
-  migrations.ts help            Show this help message
-`);
-}
-
-// --- MAIN ---
-if (import.meta.main) {
+async function main() {
   const [cmd, ...args] = Deno.args;
   switch (cmd) {
-    case "create":
-      if (!args[0]) {
-        console.error("Description required.");
+    case "create": {
+      const [target, ...descArr] = args;
+      if (!target || !descArr.length) {
+        console.error("Usage: migrate create [global|tenants] <description>");
         Deno.exit(1);
       }
-      await create(args.join("_"));
+      await createMigrationFiles(
+        target as "global" | "tenants",
+        descArr.join("_"),
+      );
       break;
-    case "apply":
-      if (args[0] && args[0] !== "--all") {
-        await apply(args[0]);
+    }
+    case "apply": {
+      const [scope, ns] = args;
+      if (scope === "global") {
+        await applyMigrationsToNamespace(
+          join(MIGRATIONS_DIR, "global"),
+          SURREALDB_GLOBAL_NAMESPACE,
+        );
+      } else if (scope === "tenants") {
+        const tenants = await getTenants();
+        for (const tenant of tenants) {
+          await applyMigrationsToNamespace(
+            join(MIGRATIONS_DIR, "tenants"),
+            tenant,
+          );
+        }
+      } else if (scope === "tenant" && ns) {
+        await applyMigrationsToNamespace(
+          join(MIGRATIONS_DIR, "tenants"),
+          ns,
+        );
       } else {
-        await apply();
+        console.error(
+          "Usage: migrate apply [global|tenants|tenant <namespace>]",
+        );
+        Deno.exit(1);
       }
       break;
-    case "down":
-      await _applyDown(args[0]);
+    }
+    case "rollback": {
+      if (args[0] === "tenant" && args[1] && args[2]) {
+        await rollbackTenantMigrations(args[1], args[2]);
+      } else {
+        const [target, version] = args;
+        if (!target || !version) {
+          console.error(
+            "Usage: migrate rollback [global|tenants] [NNN] or migrate rollback tenant <namespace> [NNN]",
+          );
+          Deno.exit(1);
+        }
+        await rollbackMigrations(target as "global" | "tenants", version);
+      }
       break;
-    case "list":
-      await list();
+    }
+    case "status": {
+      const [ns] = args;
+      if (!ns) {
+        console.error("Usage: migrate status <namespace>");
+        Deno.exit(1);
+      }
+      const files = await listMigrationFiles(
+        join(MIGRATIONS_DIR, "tenants"),
+      );
+      const applied = new Set(await getAppliedMigrations(ns));
+      for (const file of files) {
+        const status = applied.has(file) ? "[applied]" : "[pending]";
+        console.log(`${file} ${status}`);
+      }
       break;
-    case "help":
+    }
     default:
-      help();
+      console.log(`
+Usage:
+  migrate create (global|tenants) <description>
+  migrate apply (global|tenants)
+  migrate apply tenant <namespace>
+  migrate rollback (global|tenants) [NNN]
+  migrate rollback tenant <namespace> [NNN]
+  migrate status <namespace>
+`);
       break;
   }
   await db.close();
+}
+
+if (import.meta.main) {
+  await main();
 }

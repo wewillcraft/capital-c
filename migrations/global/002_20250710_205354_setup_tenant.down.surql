@@ -1,0 +1,7 @@
+-- Migration: setup tenant
+
+BEGIN TRANSACTION;
+
+REMOVE TABLE IF EXISTS tenant;
+
+COMMIT TRANSACTION;
