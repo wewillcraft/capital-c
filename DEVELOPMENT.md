@@ -44,15 +44,7 @@ volume.
 
 ### 1. Create a `.env` file
 
-Copy the example below to a file named `.env` in the project root (do NOT commit
-real secrets):
-
-```env
-SURREALDB_ROOT_USERNAME=your_secure_user
-SURREALDB_ROOT_PASSWORD=your_secure_password
-SURREALDB_LOG_LEVEL=info
-SURREALDB_PORT=8000
-```
+Copy the `.env.example` file to `.env` and fill in the values.
 
 ### 2. Start SurrealDB (Detached Mode)
 
@@ -75,22 +67,16 @@ docker compose up -d
 
 ### 3. Persistent Storage
 
-- Data is stored in the `mydata` directory in your project root, which is
-  mounted into the container.
+- Data is stored in the `data` directory in your project root, which is mounted
+  into the container.
 - This means your database persists across container restarts and
   `docker compose down/up` cycles.
-- To inspect the data, look in the `mydata` directory.
+- To inspect the data, look in the `data` directory.
 - To remove all data (dangerous!):
   ```sh
   docker compose down -v
-  rm -rf mydata/*
+  rm -rf data/*
   ```
-
-### 4. Security Best Practices
-
-- **Never commit your `.env` file** with real secrets to version control.
-- Use a `.env.example` with placeholder values for contributors.
-- For production, use a secrets manager or CI/CD environment variables.
 
 ---
 
@@ -123,7 +109,7 @@ the tenant to the root user by email:
 ```sh
 deno task tenants create <name> <display_name> <root_user_email>
 # Example:
-deno task tenants create favor "Favor Church" admin@example.com
+deno task tenants create example "Example Church" admin@example.com
 ```
 
 This will:
@@ -132,8 +118,3 @@ This will:
 - Insert a tenant record in the global namespace
 - Link the root user to the tenant with graph edges
 - Apply all tenant migrations to the new namespace
-
----
-
-See `docker-compose.yml` for service configuration details. The `version`
-attribute is no longer required or present in the Compose file.
