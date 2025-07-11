@@ -1,5 +1,6 @@
 import { join } from "@std/path";
 import { RecordId, Surreal } from "surrealdb";
+import { parseArgs } from "@std/cli/parse-args";
 
 import config from "./lib/config.ts";
 import { connect } from "./lib/db.ts";
@@ -204,23 +205,65 @@ async function getTenants(): Promise<string[]> {
   return Array.isArray(tenants) ? tenants.map((t) => t.namespace) : [];
 }
 
+function printHelp() {
+  console.log(`
+Usage:
+  migrate create (global|tenants) <description>
+  migrate apply (global|tenants)
+  migrate apply tenant <namespace>
+  migrate rollback (global|tenants) <version>
+  migrate rollback tenant <namespace> <version>
+  migrate status <namespace>
+  migrate --help
+
+Commands:
+  create    Create new migration files (up and down)
+  apply     Apply migrations to global or tenant namespaces
+  rollback  Rollback migrations to a specific version
+  status    Show migration status for a namespace
+
+Options:
+  -h, --help  Show this help message
+`);
+}
+
 async function main() {
-  const [cmd, ...args] = Deno.args;
+  const args = parseArgs(Deno.args, {
+    alias: {
+      help: "h",
+    },
+    boolean: ["help"],
+    stopEarly: true,
+  });
+
+  if (args.help) {
+    printHelp();
+    Deno.exit(0);
+  }
+
+  const [cmd, ...positionals] = args._;
+
+  if (!cmd) {
+    printHelp();
+    Deno.exit(0);
+  }
+
   switch (cmd) {
     case "create": {
-      const [target, ...descArr] = args;
+      const [target, ...descArr] = positionals;
       if (!target || !descArr.length) {
-        console.error("Usage: migrate create (global|tenants) <description>");
+        console.log("\nMissing arguments for create.\n");
+        printHelp();
         Deno.exit(1);
       }
       await createMigrationFiles(
-        target as "global" | "tenants",
-        descArr.join("_"),
+        String(target) as "global" | "tenants",
+        descArr.map(String).join("_"),
       );
       break;
     }
     case "apply": {
-      const [scope, ns] = args;
+      const [scope, ns] = positionals;
       if (scope === "global") {
         await applyMigrationsToNamespace(
           join(config.MIGRATIONS_DIR, "global"),
@@ -237,41 +280,46 @@ async function main() {
       } else if (scope === "tenant" && ns) {
         await applyMigrationsToNamespace(
           join(config.MIGRATIONS_DIR, "tenants"),
-          ns,
+          String(ns),
         );
       } else {
-        console.error(
-          "Usage: migrate apply [global|tenants|tenant <namespace>]",
-        );
+        console.log("\nInvalid arguments for apply.\n");
+        printHelp();
         Deno.exit(1);
       }
       break;
     }
     case "rollback": {
-      if (args[0] === "tenant" && args[1] && args[2]) {
-        await rollbackTenantMigrations(args[1], args[2]);
+      if (positionals[0] === "tenant" && positionals[1] && positionals[2]) {
+        await rollbackTenantMigrations(
+          String(positionals[1]),
+          String(positionals[2]),
+        );
       } else {
-        const [target, version] = args;
+        const [target, version] = positionals;
         if (!target || !version) {
-          console.error(
-            "Usage: migrate rollback (global|tenants) [NNN] or migrate rollback tenant <namespace> [NNN]",
-          );
+          console.log("\nMissing arguments for rollback.\n");
+          printHelp();
           Deno.exit(1);
         }
-        await rollbackMigrations(target as "global" | "tenants", version);
+        await rollbackMigrations(
+          String(target) as "global" | "tenants",
+          String(version),
+        );
       }
       break;
     }
     case "status": {
-      const [ns] = args;
+      const [ns] = positionals;
       if (!ns) {
-        console.error("Usage: migrate status <namespace>");
+        console.log("\nMissing namespace argument for status.\n");
+        printHelp();
         Deno.exit(1);
       }
       const files = await listMigrationFiles(
         join(config.MIGRATIONS_DIR, "tenants"),
       );
-      const applied = new Set(await getAppliedMigrations(ns));
+      const applied = new Set(await getAppliedMigrations(String(ns)));
       for (const file of files) {
         const status = applied.has(file) ? "[applied]" : "[pending]";
         console.log(`${file} ${status}`);
@@ -279,16 +327,9 @@ async function main() {
       break;
     }
     default:
-      console.log(`
-Usage:
-  migrate create (global|tenants) <description>
-  migrate apply (global|tenants)
-  migrate apply tenant <namespace>
-  migrate rollback (global|tenants) [NNN]
-  migrate rollback tenant <namespace> [NNN]
-  migrate status <namespace>
-`);
-      break;
+      console.log(`Unknown command: ${cmd}`);
+      printHelp();
+      Deno.exit(1);
   }
   await db.close();
   Deno.exit(0);

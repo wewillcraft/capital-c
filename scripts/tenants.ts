@@ -1,9 +1,9 @@
 import { join } from "@std/path";
 import { RecordId, Surreal } from "surrealdb";
+import { parseArgs } from "@std/cli/parse-args";
 
 import config from "./lib/config.ts";
 import { connect } from "./lib/db.ts";
-
 import { Tenant } from "./lib/models.ts";
 
 import { applyMigrationsToNamespace } from "./migrate.ts";
@@ -118,48 +118,71 @@ async function deleteTenantsByDisplayName(displayName: string) {
   }
 }
 
-async function main() {
-  const [cmd, ...args] = Deno.args;
-  if (cmd === "help" || !cmd) {
-    console.log(`
+function printHelp() {
+  console.log(`
 Usage:
-  tenants.ts help
-  tenants.ts create <name> <display_name> <user_email>
-  tenants.ts delete <display_name>
+  tenants create <name> <display_name> <user_email>
+  tenants delete <display_name>
+  tenants --help
+
+Commands:
+  create   Create a new tenant and link to user
+  delete   Delete all tenants with a given display name
+
+Options:
+  -h, --help  Show this help message
 `);
+}
+
+async function main() {
+  const args = parseArgs(Deno.args, {
+    alias: {
+      help: "h",
+    },
+    boolean: ["help"],
+    stopEarly: true,
+  });
+
+  if (args.help) {
+    printHelp();
     Deno.exit(0);
   }
-  if (cmd === "create") {
-    if (args.length < 3) {
-      console.log(`
-Usage:
-  tenants.ts create <name> <display_name> <user_email>
-`);
-      Deno.exit(1);
-    }
-    const [name, displayName, email] = args;
-    await createTenant(name, displayName, email);
-    await db.close();
-    return;
-  }
-  if (cmd === "delete") {
-    if (args.length < 1) {
-      console.log(`
-Usage:
-  tenants.ts delete <display_name>
-`);
-      Deno.exit(1);
-    }
-    const [displayName] = args;
-    await deleteTenantsByDisplayName(displayName);
-    await db.close();
-    return;
-  }
-  console.log(`Unknown command: ${cmd}
-See: tenants.ts help`);
 
+  const [cmd, ...positionals] = args._;
+
+  if (!cmd) {
+    printHelp();
+    Deno.exit(0);
+  }
+
+  if (cmd === "create") {
+    if (positionals.length < 3) {
+      console.log("\nMissing arguments for create.\n");
+      printHelp();
+      Deno.exit(1);
+    }
+    const [name, displayName, email] = positionals;
+    await createTenant(String(name), String(displayName), String(email));
+    await db.close();
+    return;
+  }
+
+  if (cmd === "delete") {
+    if (positionals.length < 1) {
+      console.log("\nMissing arguments for delete.\n");
+      printHelp();
+      Deno.exit(1);
+    }
+    const [displayName] = positionals;
+    await deleteTenantsByDisplayName(String(displayName));
+    await db.close();
+    return;
+  }
+
+  console.log(`Unknown command: ${cmd}`);
+  printHelp();
   await db.close();
-  Deno.exit(0);
+  Deno.exit(1);
 }
 
 if (import.meta.main) {
