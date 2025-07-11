@@ -4,7 +4,8 @@ import { parseArgs } from "@std/cli/parse-args";
 
 import config from "./lib/config.ts";
 import { connect } from "./lib/db.ts";
-import { Tenant } from "./lib/models.ts";
+
+import { Tenant } from "../models.ts";
 
 import { applyMigrationsToNamespace } from "./migrate.ts";
 
@@ -40,28 +41,27 @@ async function createTenant(name: string, displayName: string, email: string) {
   );
 
   // Find user by email
-  const users = await db.query<RecordId[]>(
+  const [userId] = await db.query<RecordId[]>(
     `SELECT VALUE id FROM ONLY user WHERE email = $email LIMIT 1`,
     { email },
   );
-  if (users.length === 0 || users.length > 1) {
+  if (!userId) {
     console.error(`User with email '${email}' not found in global namespace.`);
     return;
   }
-  const userId = users[0];
 
   // Find tenant by namespace
-  const tenants = await db.query<RecordId[]>(
+  const [tenantId] = await db.query<RecordId[]>(
     `SELECT VALUE id FROM ONLY tenant WHERE namespace = $namespace LIMIT 1`,
     { namespace },
   );
-  if (tenants.length === 0 || tenants.length > 1) {
+  if (!tenantId) {
     console.error(
       `Tenant with namespace '${namespace}' not found in tenant table.`,
     );
     return;
   }
-  const tenantId = tenants[0];
+
   // Create graph links
   await db.query(
     `RELATE $userId -> own:ulid() -> $tenantId CONTENT { created_at: time::now() }`,

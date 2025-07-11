@@ -1,6 +1,6 @@
 import { join } from "@std/path";
-import { RecordId, Surreal } from "surrealdb";
 import { parseArgs } from "@std/cli/parse-args";
+import { RecordId, Surreal } from "surrealdb";
 
 import config from "./lib/config.ts";
 import { connect } from "./lib/db.ts";
