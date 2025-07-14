@@ -11,7 +11,8 @@ DEFINE FIELD email ON user TYPE string
     $value != NONE
     AND string::is::email($value);
 DEFINE FIELD password ON user TYPE string;
-DEFINE FIELD created_at ON user TYPE datetime DEFAULT time::now();
+DEFINE FIELD updated_at ON user TYPE datetime VALUE time::now();
+DEFINE FIELD created_at ON user TYPE datetime VALUE time::now() READONLY;
 DEFINE FIELD enabled ON user TYPE bool DEFAULT true;
 
 DEFINE ACCESS user ON DATABASE TYPE RECORD
