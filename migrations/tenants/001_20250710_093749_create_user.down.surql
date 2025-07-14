@@ -1,4 +1,4 @@
--- Migration: setup_user
+-- Migration: create user
 
 BEGIN TRANSACTION;
 

@@ -1,9 +1,9 @@
--- Migration: setup_user
+-- Migration: create user
 
 BEGIN TRANSACTION;
 
 DEFINE TABLE user SCHEMAFULL
-  PERMISSIONS 
+  PERMISSIONS
     FOR select, update WHERE id = $auth.id,
     FOR create, delete NONE;
 DEFINE FIELD email ON user TYPE string
@@ -11,17 +11,14 @@ DEFINE FIELD email ON user TYPE string
     $value != NONE
     AND string::is::email($value);
 DEFINE FIELD password ON user TYPE string;
-DEFINE FIELD created_at ON user TYPE datetime;
-DEFINE FIELD enabled ON user TYPE bool;
+DEFINE FIELD created_at ON user TYPE datetime DEFAULT time::now();
+DEFINE FIELD enabled ON user TYPE bool DEFAULT true;
 
 DEFINE ACCESS user ON DATABASE TYPE RECORD
   SIGNUP (
     CREATE user CONTENT {
-      name: $name,
       email: $email,
-      password: crypto::argon2::generate($password),
-      created_at: time::now(),
-      enabled: true
+      password: crypto::argon2::generate($password)
     }
   )
   SIGNIN (

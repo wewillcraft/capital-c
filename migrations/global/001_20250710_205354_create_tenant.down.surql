@@ -1,4 +1,4 @@
--- Migration: setup tenant
+-- Migration: create tenant
 
 BEGIN TRANSACTION;
 

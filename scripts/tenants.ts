@@ -19,7 +19,7 @@ function randomSuffix(len = 4) {
   return Math.random().toString(36).slice(-len);
 }
 
-async function createTenant(name: string, displayName: string, email: string) {
+async function createTenant(name: string, displayName: string) {
   const sanitized = sanitizeName(name);
   const suffix = randomSuffix();
   const namespace = `tenant_${sanitized}_${suffix}`;
@@ -40,16 +40,6 @@ async function createTenant(name: string, displayName: string, email: string) {
     `Tenant '${displayName}' (${namespace}) created.`,
   );
 
-  // Find user by email
-  const [userId] = await db.query<RecordId[]>(
-    `SELECT VALUE id FROM ONLY user WHERE email = $email LIMIT 1`,
-    { email },
-  );
-  if (!userId) {
-    console.error(`User with email '${email}' not found in global namespace.`);
-    return;
-  }
-
   // Find tenant by namespace
   const [tenantId] = await db.query<RecordId[]>(
     `SELECT VALUE id FROM ONLY tenant WHERE namespace = $namespace LIMIT 1`,
@@ -61,25 +51,6 @@ async function createTenant(name: string, displayName: string, email: string) {
     );
     return;
   }
-
-  // Create graph links
-  await db.query(
-    `RELATE $userId -> own:ulid() -> $tenantId CONTENT { created_at: time::now() }`,
-    {
-      userId: userId,
-      tenantId: tenantId,
-    },
-  );
-  await db.query(
-    `RELATE $userId -> part_of:ulid() -> $tenantId CONTENT { created_at: time::now() }`,
-    {
-      userId: userId,
-      tenantId: tenantId,
-    },
-  );
-  console.log(
-    `Created graph links from user (${userId}) to tenant (${tenantId})`,
-  );
 
   await applyMigrationsToNamespace(
     join(config.MIGRATIONS_DIR, "tenants"),
@@ -156,13 +127,13 @@ async function main() {
   }
 
   if (cmd === "create") {
-    if (positionals.length < 3) {
+    if (positionals.length < 2) {
       console.log("\nMissing arguments for create.\n");
       printHelp();
       Deno.exit(1);
     }
-    const [name, displayName, email] = positionals;
-    await createTenant(String(name), String(displayName), String(email));
+    const [name, displayName] = positionals;
+    await createTenant(String(name), String(displayName));
     await db.close();
     return;
   }
