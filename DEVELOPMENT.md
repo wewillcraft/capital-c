@@ -91,28 +91,26 @@ This sets up the global schema (users, tenant registry, etc):
 deno task migrate apply global
 ```
 
-### 2. Create a Root User (Admin)
+### 2. Create a Tenant
 
-This will interactively prompt for name, email, and password:
-
-```sh
-deno task users create
-```
-
-### 3. Create a Tenant and Link to Root User
-
-This creates a new tenant namespace, applies all tenant migrations, and links
-the tenant to the root user by email:
+This creates a new tenant namespace and applies all tenant migrations:
 
 ```sh
-deno task tenants create <name> <display_name> <root_user_email>
+deno task tenants create <name> <display_name>
 # Example:
-deno task tenants create example "Example Church" admin@example.com
+deno task tenants create example "Example Church"
 ```
 
 This will:
 
 - Create a new SurrealDB namespace for the tenant
 - Insert a tenant record in the global namespace
-- Link the root user to the tenant with graph edges
 - Apply all tenant migrations to the new namespace
+
+### 3. Create a Tenant User
+
+This creates a new tenant user for the tenant namespace:
+
+```sh
+deno task users create
+```

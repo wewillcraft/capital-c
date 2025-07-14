@@ -14,8 +14,8 @@ async function prompt(label: string): Promise<string> {
   return input;
 }
 
-async function createAdminUser() {
-  const name = await prompt("Name: ");
+async function createTenantUser() {
+  const tenantNamespace = await prompt("Tenant Namespace: ");
   const email = await prompt("Email: ");
   const password = await prompt("Password: ");
   await connect(
@@ -25,18 +25,22 @@ async function createAdminUser() {
   );
   try {
     const res = await db.signup({
-      namespace: config.SURREALDB_GLOBAL_NAMESPACE,
-      database: config.SURREALDB_GLOBAL_DATABASE,
+      namespace: tenantNamespace,
+      database: config.SURREALDB_TENANT_DATABASE,
       access: "user",
       variables: {
-        name,
         email,
         password,
       },
     });
-    console.log("Admin user created:", res);
+    console.log("Tenant user for namespace", tenantNamespace, "created:", res);
   } catch (e) {
-    console.error("Failed to create admin user:", e);
+    console.error(
+      "Failed to create tenant user for namespace",
+      tenantNamespace,
+      ":",
+      e,
+    );
   } finally {
     await db.close();
   }
@@ -49,7 +53,7 @@ Usage:
   users --help
 
 Commands:
-  create   Create a new admin user (interactive)
+  create   Create a new tenant user (interactive)
 
 Options:
   -h, --help  Show this help message
@@ -78,7 +82,7 @@ async function main() {
   }
 
   if (cmd === "create") {
-    await createAdminUser();
+    await createTenantUser();
     await db.close();
     return;
   }
