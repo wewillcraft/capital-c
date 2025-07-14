@@ -1,0 +1,11 @@
+-- Migration: create location
+
+BEGIN TRANSACTION;
+
+--------------------------------------------------------------------------------
+
+REMOVE TABLE IF EXISTS location;
+
+--------------------------------------------------------------------------------
+
+COMMIT TRANSACTION;

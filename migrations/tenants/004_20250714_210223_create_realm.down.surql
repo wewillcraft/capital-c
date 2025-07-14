@@ -1,7 +1,0 @@
--- Migration: create realm
-
-BEGIN TRANSACTION;
-
-REMOVE TABLE IF EXISTS realm;
-
-COMMIT TRANSACTION;

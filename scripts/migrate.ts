@@ -77,7 +77,11 @@ async function createMigrationFiles(
 
 BEGIN TRANSACTION;
 
+--------------------------------------------------------------------------------
+
 -- Your migration code here
+
+--------------------------------------------------------------------------------
 
 COMMIT TRANSACTION;
 `;
