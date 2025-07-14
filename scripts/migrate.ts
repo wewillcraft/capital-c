@@ -97,24 +97,41 @@ async function rollbackMigrations(
     .sort()
     .reverse();
   const toRollback = files.filter((f) => f.slice(0, 3) > version);
-  await connect(
-    db,
-    config.SURREALDB_GLOBAL_NAMESPACE,
-    config.SURREALDB_GLOBAL_DATABASE,
-  );
 
   for (const file of toRollback) {
     const downFile = file.replace(/\.surql$/, ".down.surql");
     try {
       const sql = await readMigrationFile(dir, downFile);
       console.log(`Rolling back: ${downFile}`);
-      await db.query(sql);
-      await connect(
-        db,
-        target === "global" ? config.SURREALDB_GLOBAL_NAMESPACE : file,
-        config.SURREALDB_TENANT_DATABASE,
-      );
-      await db.delete(new RecordId(config.MIGRATION_TABLE, file));
+
+      if (target === "global") {
+        await connect(
+          db,
+          config.SURREALDB_GLOBAL_NAMESPACE,
+          config.SURREALDB_GLOBAL_DATABASE,
+        );
+
+        await db.query(sql);
+        await db.delete(new RecordId(config.MIGRATION_TABLE, file));
+
+        return;
+      }
+
+      const tenants = await getTenants();
+      for (const tenant of tenants) {
+        try {
+          console.log(`[${tenant}] Rolling back: ${downFile}`);
+
+          await connect(db, tenant, config.SURREALDB_TENANT_DATABASE);
+          await db.query(sql);
+          await db.delete(new RecordId(config.MIGRATION_TABLE, file));
+
+          console.log(`[${tenant}] Rolled back: ${downFile}`);
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          console.error(`[${tenant}] Failed to rollback ${downFile}: ${msg}`);
+        }
+      }
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       console.error(`Failed to rollback ${downFile}: ${msg}`);
