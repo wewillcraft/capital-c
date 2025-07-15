@@ -4,7 +4,7 @@ BEGIN TRANSACTION;
 
 --------------------------------------------------------------------------------
 
-DEFINE TABLE user SCHEMAFULL
+DEFINE TABLE user SCHEMALESS
   PERMISSIONS
     FOR select, update WHERE id = $auth.id,
     FOR create, delete NONE;
@@ -14,7 +14,8 @@ DEFINE FIELD email ON user TYPE string
     $value != NONE
     AND string::is::email($value);
 DEFINE FIELD password ON user TYPE string;
-DEFINE FIELD enabled ON user TYPE bool DEFAULT true;
+DEFINE FIELD is_enabled ON user TYPE bool DEFAULT true;
+DEFINE FIELD is_superuser ON user TYPE option<bool> DEFAULT false;
 DEFINE FIELD updated_at ON user TYPE datetime VALUE time::now();
 DEFINE FIELD created_at ON user TYPE datetime VALUE time::now() READONLY;
 
@@ -30,7 +31,7 @@ DEFINE ACCESS user ON DATABASE TYPE RECORD
     AND crypto::argon2::compare(password, $password)
   )
   AUTHENTICATE {
-    IF !$auth.enabled {
+    IF !$auth.is_enabled {
       THROW 'This user is not enabled';
     };
 

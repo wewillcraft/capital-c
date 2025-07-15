@@ -6,6 +6,12 @@ BEGIN TRANSACTION;
 
 DEFINE TABLE realm SCHEMALESS;
 
+DEFINE FIELD id ON realm TYPE string ASSERT {
+  IF string::matches(record::id($value), "[^a-zA-Z0-9]") {
+    THROW "ID must only contain alphanumeric characters";
+  };
+  RETURN true;
+};
 DEFINE FIELD title ON realm TYPE string;
 DEFINE FIELD description ON realm TYPE option<string>;
 DEFINE FIELD updated_at ON realm TYPE datetime VALUE time::now();
@@ -38,12 +44,47 @@ DEFINE FIELD created_at ON role TYPE datetime VALUE time::now() READONLY;
 --------------------------------------------------------------------------------
 
 DEFINE TABLE role_for TYPE RELATION FROM role TO realm ENFORCED;
-DEFINE TABLE has_role TYPE RELATION FROM user TO role ENFORCED;
-DEFINE TABLE can_create TYPE RELATION FROM role TO definition ENFORCED;
-DEFINE TABLE can_read TYPE RELATION FROM role TO definition ENFORCED;
-DEFINE TABLE can_update TYPE RELATION FROM role TO definition ENFORCED;
-DEFINE TABLE can_delete TYPE RELATION FROM role TO definition ENFORCED;
+DEFINE FIELD created_at ON role_for TYPE datetime VALUE time::now() READONLY;
 
 --------------------------------------------------------------------------------
+
+DEFINE TABLE has_role TYPE RELATION FROM user TO role ENFORCED;
+DEFINE FIELD created_at ON has_role TYPE datetime VALUE time::now() READONLY;
+
+--------------------------------------------------------------------------------
+
+DEFINE TABLE has_permission TYPE RELATION FROM role TO definition ENFORCED;
+DEFINE FIELD action ON has_permission TYPE "create" | "read" | "update" | "delete";
+DEFINE FIELD created_at ON has_permission TYPE datetime VALUE time::now() READONLY;
+
+--------------------------------------------------------------------------------
+
+DEFINE FUNCTION fn::has_permission(
+    $user_id: string,
+    $realm_id: string,
+    $action: "create" | "read" | "update" | "delete",
+    $definition_id: string
+  ) -> bool {
+  LET $user_record = type::thing("user", $user_id);
+  LET $realm_record = type::thing("realm", $realm_id);
+  LET $definition_record = type::thing("definition", $definition_id);
+
+  LET $is_enabled = SELECT VALUE is_enabled FROM ONLY $user_record;
+  IF $is_enabled != true {
+    RETURN false;
+  };
+
+  LET $is_superuser = SELECT VALUE is_superuser FROM ONLY $user_record;
+  IF $is_superuser = true {
+    RETURN true;
+  };
+
+  RETURN SELECT VALUE array::len(
+    ->has_role->role[
+      WHERE ->role_for->realm[WHERE id = $realm_record]
+      AND ->has_permission[WHERE action = $action AND out = $definition_record]
+    ]
+  ) > 0 FROM ONLY $user_record;
+};
 
 COMMIT TRANSACTION;
