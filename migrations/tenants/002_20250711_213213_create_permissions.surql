@@ -38,18 +38,9 @@ DEFINE TABLE role SCHEMALESS;
 
 DEFINE FIELD title ON role TYPE string;
 DEFINE FIELD description ON role TYPE option<string>;
+DEFINE FIELD realm ON role TYPE record<realm>;
 DEFINE FIELD updated_at ON role TYPE datetime VALUE time::now();
 DEFINE FIELD created_at ON role TYPE datetime VALUE time::now() READONLY;
-
---------------------------------------------------------------------------------
-
-DEFINE TABLE role_for TYPE RELATION FROM role TO realm ENFORCED;
-DEFINE FIELD created_at ON role_for TYPE datetime VALUE time::now() READONLY;
-
---------------------------------------------------------------------------------
-
-DEFINE TABLE has_role TYPE RELATION FROM user TO role ENFORCED;
-DEFINE FIELD created_at ON has_role TYPE datetime VALUE time::now() READONLY;
 
 --------------------------------------------------------------------------------
 
@@ -80,8 +71,8 @@ DEFINE FUNCTION fn::has_permission(
   };
 
   RETURN SELECT VALUE array::len(
-    ->has_role->role[
-      WHERE ->role_for->realm[WHERE id = $realm_record]
+    roles[
+      WHERE realm = $realm_record
       AND ->has_permission[WHERE action = $action AND out = $definition_record]
     ]
   ) > 0 FROM ONLY $user_record;
