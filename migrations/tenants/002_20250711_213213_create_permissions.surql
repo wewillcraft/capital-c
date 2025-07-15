@@ -38,13 +38,24 @@ DEFINE TABLE role SCHEMALESS;
 
 DEFINE FIELD title ON role TYPE string;
 DEFINE FIELD description ON role TYPE option<string>;
-DEFINE FIELD realm ON role TYPE record<realm>;
-DEFINE FIELD can_create ON role TYPE option<set<record<definition>>>;
-DEFINE FIELD can_read ON role TYPE option<set<record<definition>>>;
-DEFINE FIELD can_update ON role TYPE option<set<record<definition>>>;
-DEFINE FIELD can_delete ON role TYPE option<set<record<definition>>>;
 DEFINE FIELD updated_at ON role TYPE datetime VALUE time::now();
 DEFINE FIELD created_at ON role TYPE datetime VALUE time::now() READONLY;
+
+--------------------------------------------------------------------------------
+
+DEFINE TABLE role_for TYPE RELATION FROM role TO realm ENFORCED;
+DEFINE FIELD created_at ON role_for TYPE datetime VALUE time::now() READONLY;
+
+--------------------------------------------------------------------------------
+
+DEFINE TABLE has_role TYPE RELATION FROM user TO role ENFORCED;
+DEFINE FIELD created_at ON has_role TYPE datetime VALUE time::now() READONLY;
+
+--------------------------------------------------------------------------------
+
+DEFINE TABLE has_permission TYPE RELATION FROM role TO definition ENFORCED;
+DEFINE FIELD action ON has_permission TYPE "create" | "read" | "update" | "delete";
+DEFINE FIELD created_at ON has_permission TYPE datetime VALUE time::now() READONLY;
 
 --------------------------------------------------------------------------------
 
@@ -69,14 +80,9 @@ DEFINE FUNCTION fn::has_permission(
   };
 
   RETURN SELECT VALUE array::len(
-    roles[
-      WHERE realm = $realm_record
-      AND (
-        ($action = "create" AND $definition_record IN can_create) OR
-        ($action = "read" AND $definition_record IN can_read) OR
-        ($action = "update" AND $definition_record IN can_update) OR
-        ($action = "delete" AND $definition_record IN can_delete)
-      )
+    ->has_role->role[
+      WHERE ->role_for->realm[WHERE id = $realm_record]
+      AND ->has_permission[WHERE action = $action AND out = $definition_record]
     ]
   ) > 0 FROM ONLY $user_record;
 };
