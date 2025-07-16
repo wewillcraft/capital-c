@@ -56,7 +56,7 @@ DEFINE FIELD created_at ON person TYPE datetime VALUE time::now() READONLY;
 
 --------------------------------------------------------------------------------
 
-DEFINE TABLE is_person TYPE RELATION FROM user TO person ENFORCED;
+DEFINE TABLE has_profile TYPE RELATION FROM user TO person ENFORCED;
 
 --------------------------------------------------------------------------------
 
