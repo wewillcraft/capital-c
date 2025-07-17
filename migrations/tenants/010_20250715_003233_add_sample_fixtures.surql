@@ -22,9 +22,6 @@ RELATE realm:manilacampus->child_realm_of->realm:manila;
 RELATE realm:brisbanecampus->child_realm_of->realm:brisbane;
 RELATE realm:seoulcampus->child_realm_of->realm:seoul;
 
-CREATE definition:definition SET title = "Definition";
-CREATE definition:group SET title = "Group";
-
 CREATE role:main_admin SET title = "Main Admin";
 CREATE role:main_leader SET title = "Main User";
 CREATE role:main_guest SET title = "Main Guest";

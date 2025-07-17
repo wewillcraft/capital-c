@@ -37,10 +37,40 @@ DEFINE FIELD id ON definition TYPE string ASSERT {
   };
   RETURN true;
 };
+DEFINE FIELD _parent ON definition TYPE option<string>;
+DEFINE FIELD _internal ON definition TYPE bool DEFAULT false;
 DEFINE FIELD title ON definition TYPE string;
 DEFINE FIELD description ON definition TYPE option<string>;
+DEFINE FIELD versions ON definition TYPE array<object> DEFAULT [];
 DEFINE FIELD updated_at ON definition TYPE datetime VALUE time::now();
 DEFINE FIELD created_at ON definition TYPE datetime VALUE time::now() READONLY;
+
+CREATE definition:definition SET title = "Definition", _internal = true;
+CREATE definition:group SET title = "Group", _internal = true;
+
+DEFINE EVENT prevent_deletion_of_internal_definitions ON TABLE definition
+WHEN $event = "DELETE"
+  AND $value._internal = true THEN
+{
+  THROW "Internal definitions cannot be deleted";
+};
+
+DEFINE EVENT parent_definition_must_be_internal ON TABLE definition
+WHEN $event = "CREATE" THEN {
+  IF $value._parent = NONE AND $value._internal = false THEN {
+    THROW "Regular definitions must have an internal parent definition";
+  } END;
+
+  LET $parent_definition = type::thing("definition", $value._parent);
+  IF not(record::exists($parent_definition)) THEN {
+    THROW "Parent definition does not exist";
+  } END;
+
+  LET $is_internal = SELECT VALUE _internal FROM ONLY $parent_definition;
+  IF not($is_internal) THEN {
+    THROW "Parent definition must be internal";
+  } END;
+};
 
 --------------------------------------------------------------------------------
 
