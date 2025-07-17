@@ -17,6 +17,16 @@ DEFINE FIELD description ON realm TYPE option<string>;
 DEFINE FIELD updated_at ON realm TYPE datetime VALUE time::now();
 DEFINE FIELD created_at ON realm TYPE datetime VALUE time::now() READONLY;
 
+CREATE realm:main SET title = "Main", description = "The Main Realm";
+
+DEFINE EVENT prevent_deletion_of_main_realm ON TABLE realm WHEN $value.id = realm:main THEN {
+  THROW "Main realm cannot be deleted";
+};
+
+--------------------------------------------------------------------------------
+
+DEFINE TABLE has_parent_realm TYPE RELATION FROM realm TO realm ENFORCED;
+
 --------------------------------------------------------------------------------
 
 DEFINE TABLE definition SCHEMALESS;
@@ -79,12 +89,21 @@ DEFINE FUNCTION fn::has_permission(
     RETURN true;
   };
 
-  RETURN SELECT VALUE array::len(
-    ->has_role->role[
-      WHERE ->role_for->realm[WHERE id = $realm_record]
-      AND ->has_permission[WHERE action = $action AND out = $definition_record]
-    ]
-  ) > 0 FROM ONLY $user_record;
+  -- Get the realms from the root realm to the target realm
+  -- and check if the user has a permission from the higher realms first.
+  LET $realm_ids = realm:main.{..+shortest=$realm_record+inclusive}<-has_parent_realm<-realm;
+  FOR $realm_id IN $realm_ids {
+    LET $has_permission = SELECT VALUE array::len(
+      ->has_role->role[
+        WHERE ->role_for->realm[WHERE id = $realm_id]
+        AND ->has_permission[WHERE action = $action AND out = $definition_record]
+      ]
+    ) > 0 FROM ONLY $user_record;
+    IF $has_permission {
+      RETURN true;
+    };
+  };
+  RETURN false;
 };
 
 COMMIT TRANSACTION;
