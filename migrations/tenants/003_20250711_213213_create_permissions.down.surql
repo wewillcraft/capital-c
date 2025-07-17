@@ -9,6 +9,7 @@ REMOVE FUNCTION IF EXISTS fn::has_permission;
 REMOVE EVENT IF EXISTS prevent_deletion_of_main_realm ON TABLE realm;
 REMOVE EVENT IF EXISTS prevent_deletion_of_internal_definitions ON TABLE definition;
 REMOVE EVENT IF EXISTS parent_definition_must_be_internal ON TABLE definition;
+REMOVE EVENT IF EXISTS prevent_deletion_of_definitions_in_use ON TABLE definition;
 REMOVE TABLE IF EXISTS realm;
 REMOVE TABLE IF EXISTS definition;
 REMOVE TABLE IF EXISTS role;

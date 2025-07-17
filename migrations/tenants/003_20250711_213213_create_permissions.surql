@@ -42,6 +42,7 @@ DEFINE FIELD _internal ON definition TYPE bool DEFAULT false;
 DEFINE FIELD title ON definition TYPE string;
 DEFINE FIELD description ON definition TYPE option<string>;
 DEFINE FIELD versions ON definition TYPE array<object> DEFAULT [];
+DEFINE FIELD show_in_ui ON definition TYPE bool DEFAULT true;
 DEFINE FIELD updated_at ON definition TYPE datetime VALUE time::now();
 DEFINE FIELD created_at ON definition TYPE datetime VALUE time::now() READONLY;
 
@@ -70,6 +71,17 @@ WHEN $event = "CREATE" THEN {
   IF not($is_internal) THEN {
     THROW "Parent definition must be internal";
   } END;
+};
+
+DEFINE EVENT prevent_deletion_of_definitions_in_use ON TABLE definition
+WHEN $event = "DELETE" THEN {
+  LET $relevant_tables = ["group"];
+  FOR $table_name IN $relevant_tables {
+    LET $records = SELECT VALUE count() FROM ONLY type::table($table_name) WHERE _definition = record::id($value.id);
+    IF $records > 0 THEN {
+      THROW "Definition is still in use";
+    } END;
+  };
 };
 
 --------------------------------------------------------------------------------
