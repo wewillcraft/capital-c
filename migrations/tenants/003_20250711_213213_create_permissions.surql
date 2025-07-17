@@ -25,7 +25,7 @@ DEFINE EVENT prevent_deletion_of_main_realm ON TABLE realm WHEN $value.id = real
 
 --------------------------------------------------------------------------------
 
-DEFINE TABLE has_parent_realm TYPE RELATION FROM realm TO realm ENFORCED;
+DEFINE TABLE child_realm_of TYPE RELATION FROM realm TO realm ENFORCED;
 
 --------------------------------------------------------------------------------
 
@@ -91,7 +91,7 @@ DEFINE FUNCTION fn::has_permission(
 
   -- Get the realms from the root realm to the target realm
   -- and check if the user has a permission from the higher realms first.
-  LET $realm_ids = realm:main.{..+shortest=$realm_record+inclusive}<-has_parent_realm<-realm;
+  LET $realm_ids = realm:main.{..+shortest=$realm_record+inclusive}<-child_realm_of<-realm;
   FOR $realm_id IN $realm_ids {
     LET $has_permission = SELECT VALUE array::len(
       ->has_role->role[

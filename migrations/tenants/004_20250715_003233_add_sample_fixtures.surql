@@ -15,12 +15,12 @@ CREATE realm:manilacampus SET title = "Manila Campus";
 CREATE realm:brisbanecampus SET title = "Brisbane Campus";
 CREATE realm:seoulcampus SET title = "Seoul Campus";
 
-RELATE realm:manila->has_parent_realm->realm:main;
-RELATE realm:brisbane->has_parent_realm->realm:main;
-RELATE realm:seoul->has_parent_realm->realm:main;
-RELATE realm:manilacampus->has_parent_realm->realm:manila;
-RELATE realm:brisbanecampus->has_parent_realm->realm:brisbane;
-RELATE realm:seoulcampus->has_parent_realm->realm:seoul;
+RELATE realm:manila->child_realm_of->realm:main;
+RELATE realm:brisbane->child_realm_of->realm:main;
+RELATE realm:seoul->child_realm_of->realm:main;
+RELATE realm:manilacampus->child_realm_of->realm:manila;
+RELATE realm:brisbanecampus->child_realm_of->realm:brisbane;
+RELATE realm:seoulcampus->child_realm_of->realm:seoul;
 
 CREATE definition:group SET title = "Group";
 
