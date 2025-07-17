@@ -1,6 +1,6 @@
 services:
   surrealdb:
-    image: surrealdb/surrealdb:v2.1.8
+    image: surrealdb/surrealdb:v2.3.7
     pull_policy: always
     command: start --log $SURREALDB_LOG_LEVEL --user $SURREALDB_ROOT_USERNAME --pass $SURREALDB_ROOT_PASSWORD rocksdb:/data/stillwegather.db
     ports:
