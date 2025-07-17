@@ -51,6 +51,9 @@ RELATE role:main_leader->has_permission->definition:group SET action = "update";
 RELATE role:main_guest->has_permission->definition:group SET action = "read";
 RELATE role:seoulcampus_admin->has_permission->definition:group SET action = "create";
 
+CREATE group:volunteers SET title = "All Volunteers", _definition = "group";
+RELATE group:volunteers->has_realm->realm:manila;
+
 --------------------------------------------------------------------------------
 
 COMMIT TRANSACTION;
