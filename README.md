@@ -1,6 +1,6 @@
-# Still We Gather
+# Capital C
 
-![Still We Gather Logo](static/android-chrome-192x192.png)
+![Capital C Logo](static/android-chrome-192x192.png)
 
 Everything you need to shepherd your church.
 

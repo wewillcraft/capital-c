@@ -1,4 +1,4 @@
-# Still We Gather - An Open Source Church Management System (ChMS)
+# Capital C - An Open Source Church Management System (ChMS)
 
 ### 1. Overview
 

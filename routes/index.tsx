@@ -60,12 +60,12 @@ export default function Home(): JSX.Element {
           <div class="flex items-center gap-3">
             <img
               src="/android-chrome-192x192.png"
-              alt="Still We Gather Logo"
+              alt="Capital C Logo"
               class="w-10 h-10 rounded"
               style={{ imageRendering: "auto" }}
             />
             <a href="/" class="text-xl font-bold text-slate-900 tracking-tight">
-              Still We Gather
+              Capital C
             </a>
           </div>
           <a
@@ -186,7 +186,7 @@ export default function Home(): JSX.Element {
       {/* Footer */}
       <footer class="mt-auto py-12 px-4 bg-slate-900 text-slate-100 text-center text-sm flex flex-col items-center">
         <div class="text-2xl font-bold mb-2 tracking-tight">
-          Still We Gather
+          Capital C
         </div>
         <div class="text-slate-300 mb-4">
           &copy; {new Date().getFullYear()}{" "}
@@ -195,7 +195,7 @@ export default function Home(): JSX.Element {
         <div class="w-full max-w-xs mx-auto border-t border-slate-700 my-4">
         </div>
         <a
-          href="https://github.com/wewillcraft/stillwegather"
+          href="https://github.com/wewillcraft/capital-c"
           target="_blank"
           rel="noopener noreferrer"
           class="inline-block text-slate-300 hover:text-orange-400 underline transition text-base font-medium py-2"
